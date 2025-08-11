@@ -1,7 +1,3 @@
-# username: admin
-# email: admin@example.com
-# password: superadmin
-
 from django.contrib import admin
 from .models import Category, Product
 
