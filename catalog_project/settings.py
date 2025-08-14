@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "django_filters",
     "drf_yasg",
     "corsheaders",
+    "rest_framework_api_key",
     "catalog_api",
 ]
 
@@ -131,6 +132,10 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.OrderingFilter",
+    ],
+    # Default Authentication and Permission classes
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication", # For browsable API
     ]
 }
 

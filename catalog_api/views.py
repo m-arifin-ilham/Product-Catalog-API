@@ -9,15 +9,17 @@ from rest_framework.filters import OrderingFilter  # Import OrderingFilter
 from .filters import ProductFilter  # Import your custom filterset
 from rest_framework.decorators import action  # Import action decorator
 from rest_framework.response import Response  # Import Response
+from .permissions import HasAPIKeyForWriteOperations # Import your new custom permission
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows categories to be viewed or edited.
     """
-
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    # Apply permissions: GET is public, POST/PUT/DELETE require API Key
+    permission_classes = [HasAPIKeyForWriteOperations]
 
 
 class ProductViewSet(viewsets.ModelViewSet):
@@ -27,7 +29,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     Provides CRUD operations, filtering by name, category, price range,
     availability, and featured status, and sorting by various fields.
     """
-
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -40,6 +41,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     ]  # Specify fields for ordering
     # You can also set a default ordering if no 'ordering' param is provided:
     # ordering = ['name']
+    # Apply permissions: GET is public, POST/PUT/DELETE require API Key
+    permission_classes = [HasAPIKeyForWriteOperations]
 
     # --- Custom Action for Product Purchase ---
     @action(detail=True, methods=["post"])

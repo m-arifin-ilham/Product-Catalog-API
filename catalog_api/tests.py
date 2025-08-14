@@ -1,6 +1,8 @@
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.test import APIClient
+from rest_framework_api_key.models import APIKey
 from .models import Category, Product
 from decimal import Decimal  # Import the Decimal type
 
@@ -73,7 +75,9 @@ class ProductAPITest(TestCase):
         """
         Set up a test client and some initial data.
         """
-        self.client = Client()
+        self.api_key_obj, self.api_key_str = APIKey.objects.create_key(name="test_key")
+        self.client = APIClient()
+
         self.category_books = Category.objects.create(name="Books")
         self.category_electronics = Category.objects.create(name="Electronics")
 
@@ -138,6 +142,9 @@ class ProductAPITest(TestCase):
             "category": self.category_books.id,
         }
 
+        # API Key for testing authenticated requests
+        self.auth_headers = {'Authorization': f'API-Key {self.api_key_str}'}
+
     def test_list_all_products(self):
         """
         Ensure the API can retrieve a list of all products.
@@ -154,6 +161,7 @@ class ProductAPITest(TestCase):
             reverse("product-list"),
             data=self.valid_payload,
             format="json",  # Important for sending JSON data
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(
@@ -168,7 +176,10 @@ class ProductAPITest(TestCase):
         Ensure the API does not create a product with invalid data.
         """
         response = self.client.post(
-            reverse("product-list"), data=self.invalid_payload, format="json"
+            reverse("product-list"), 
+            data=self.invalid_payload, 
+            format="json",
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Product.objects.count(), 6)  # No new product should be added
@@ -351,6 +362,7 @@ class ProductAPITest(TestCase):
             reverse("product-purchase", kwargs={"pk": self.product_a.id}),
             data={"quantity": purchase_quantity},
             format="json",
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -376,6 +388,7 @@ class ProductAPITest(TestCase):
             reverse("product-purchase", kwargs={"pk": self.product_zero_stock.id}),
             data={"quantity": purchase_quantity},
             format="json",
+            headers=self.auth_headers,
         )
         self.assertEqual(
             response.status_code, status.HTTP_400_BAD_REQUEST
@@ -400,7 +413,7 @@ class ProductAPITest(TestCase):
             reverse("product-detail", kwargs={"pk": self.product_m.id}),
             data=update_data,
             format="json",
-            content_type="application/json",
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["is_featured"], True)
@@ -408,3 +421,59 @@ class ProductAPITest(TestCase):
         # Verify in database
         self.product_m.refresh_from_db()
         self.assertEqual(self.product_m.is_featured, True)
+
+    # --- NEW TESTS FOR PERMISSIONS ---
+
+    def test_create_product_unauthenticated(self):
+        """
+        Ensure creating a product without API key returns 403 Forbidden.
+        """
+        response = self.client.post(
+            reverse('product-list'),
+            data=self.valid_payload,
+            format='json',
+            # No headers=self.auth_headers here
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(Product.objects.count(), 6) # No new product should be added
+
+    def test_update_product_unauthenticated(self):
+        """
+        Ensure updating a product without API key returns 403 Forbidden.
+        """
+        update_data = {'name': 'Unauthorized Update'}
+        response = self.client.patch(
+            reverse('product-detail', kwargs={'pk': self.product_a.id}),
+            data=update_data,
+            format='json',
+            # No headers=self.auth_headers here
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.product_a.refresh_from_db()
+        self.assertNotEqual(self.product_a.name, 'Unauthorized Update')
+
+    def test_delete_product_unauthenticated(self):
+        """
+        Ensure deleting a product without API key returns 403 Forbidden.
+        """
+        response = self.client.delete(
+            reverse('product-detail', kwargs={'pk': self.product_a.id})
+            # No headers=self.auth_headers here
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Product.objects.filter(id=self.product_a.id).exists()) # Product should still exist
+
+    def test_purchase_product_unauthenticated(self):
+        """
+        Ensure purchasing a product without API key returns 403 Forbidden.
+        """
+        initial_stock = self.product_a.stock_quantity
+        response = self.client.post(
+            reverse('product-purchase', kwargs={'pk': self.product_a.id}),
+            data={'quantity': 1},
+            format='json',
+            # No headers=self.auth_headers here
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.product_a.refresh_from_db()
+        self.assertEqual(self.product_a.stock_quantity, initial_stock)

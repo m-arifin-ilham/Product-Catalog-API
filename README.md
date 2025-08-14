@@ -29,6 +29,9 @@ This project is a robust and feature-rich **Product Catalog RESTful API** built 
 * **Product Attributes:** Includes fields like `image_url` and `is_featured` flag for enhanced product representation.
 * **Interactive API Documentation:** Automatically generated Swagger UI and ReDoc documentation for all endpoints, making the API easy to understand and integrate with.
 * **Django Admin Panel:** Leverages Django's powerful built-in admin interface for convenient data management of products and categories.
+* **API Key Authentication:** Securely protects write operations (POST, PUT, PATCH, DELETE, custom actions) using `djangorestframework-api-key`.
+* **Public Read Access:** Allows public (unauthenticated) access for read-only operations (GET).
+* **CORS Enabled:** Configured with `django-cors-headers` to allow cross-origin requests from specified origins.
 
 ***
 
@@ -93,6 +96,8 @@ This project utilizes Django's inherent structure, which naturally aligns with m
 * **SQLite:** Default database for local development.
 * **django-filter:** For advanced filtering capabilities.
 * **drf-yasg:** For automatic generation of Swagger/OpenAPI documentation.
+* **djangorestframework-api-key:** For API Key authentication.
+* **django-cors-headers:** For Cross-Origin Resource Sharing (CORS) management.
 
 ***
 
@@ -131,6 +136,9 @@ Follow these instructions to set up and run the project locally.
     python manage.py makemigrations
     python manage.py migrate
     ```
+
+5.  **Generate an API Key:**
+    Access the Django Admin panel (`http://127.0.0.1:8000/admin/`), log in, and navigate to "API Keys". Click "Add API key", give it a name (e.g., "Sales Tracker API Key"), and **copy the generated key string (it's shown only once!)**. This key will be used by authorized clients (like the Sales Tracker Backend).
 
 ### Running the API
 
@@ -172,24 +180,24 @@ Django provides a powerful built-in administration interface. To access and mana
 All endpoints assume a base URL of `http://127.0.0.1:8000/api/`.
 
 ### Categories
-| Method   | Endpoint           | Description                       |
-| :------- | :----------------- | :-------------------------------- |
-| `GET`    | `/categories`      | List all product categories.      |
-| `POST`   | `/categories`      | Create a new product category.    |
-| `GET`    | `/categories/{id}` | Retrieve a single category by ID. |
-| `PUT`    | `/categories/{id}` | Update an existing category.      |
-| `DELETE` | `/categories/{id}` | Delete a category.                |
+| Method   | Endpoint           | Description                       | Authentication |
+| :------- | :----------------- | :-------------------------------- | :------------- |
+| `GET`    | `/categories`      | List all product categories.      | Public         |
+| `POST`   | `/categories`      | Create a new product category.    | API Key        |
+| `GET`    | `/categories/{id}` | Retrieve a single category by ID. | Public         |
+| `PUT`    | `/categories/{id}` | Update an existing category.      | API Key        |
+| `DELETE` | `/categories/{id}` | Delete a category.                | API Key        |
 
 ### Products
-| Method   | Endpoint                  | Description                                                                  |
-| :------- | :------------------------ | :--------------------------------------------------------------------------- |
-| `GET`    | `/products`               | List all products with advanced filtering and sorting.                       |
-| `POST`   | `/products`               | Create a new product.                                                        |
-| `GET`    | `/products/{id}`          | Retrieve a single product by ID.                                             |
-| `PUT`    | `/products/{id}`          | Update an existing product.                                                  |
-| `PATCH`  | `/products/{id}`          | Partially update an existing product (e.g., `is_featured`).                  |
-| `DELETE` | `/products/{id}`          | Delete a product.                                                            |
-| `POST`   | `/products/{id}/purchase` | **Custom Action:** Simulate a product purchase, decreasing `stock_quantity`. |
+| Method   | Endpoint                  | Description                                                                  | Authentication |
+| :------- | :------------------------ | :--------------------------------------------------------------------------- | :------------- |
+| `GET`    | `/products`               | List all products with advanced filtering and sorting.                       | Public         |
+| `POST`   | `/products`               | Create a new product.                                                        | API Key        |
+| `GET`    | `/products/{id}`          | Retrieve a single product by ID.                                             | Public         |
+| `PUT`    | `/products/{id}`          | Update an existing product.                                                  | API Key        |
+| `PATCH`  | `/products/{id}`          | Partially update an existing product (e.g., `is_featured`).                  | API Key        |
+| `DELETE` | `/products/{id}`          | Delete a product.                                                            | API Key        |
+| `POST`   | `/products/{id}/purchase` | **Custom Action:** Simulate a product purchase, decreasing `stock_quantity`. | API Key        |
 
 ### `GET /products/` Query Parameters
 | Parameter     | Type      | Description                                                               | Example             |
